@@ -8,6 +8,9 @@
 #include <fcntl.h> //Adds the modes
 #include <dirent.h> //Holds open dir etc
 #include <unistd.h> //Holds open files etc
+#include <ctype.h> 
+#define MAXSIZE 4096 //This is for buffer read and path file names
+#define wordArraySize 100 // We can make this bigger
 
 /*
     Will check if the file name ends witha .txt to be scanned
@@ -28,6 +31,127 @@ int txtFile(const char *name){
     }else{
         return 0;
     }
+}
+
+/*
+    Here we will check our new string and organize to lower case and rid of characters that arent allowed as defined by project
+        !- Words A word is a sequence of non-whitespace characters containing at least one letter; not
+        !-  Starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
+        !-In rewrite word we will use memove and pointer arithmatic so we skip all the non valid chars 
+*/
+
+int frontCharCheck(char c){ //Returns 1 if true 0 if false
+    if (c == '(' || c == '[' || c == '{' || c == '\"' || c == '\''){
+        return 1;
+    }else{
+        return 0;
+    }
+}
+int lastCharCheck(char c){ //Returns 1 if true 0 if false
+    if (c == ')' || c == ']' || c == '}' || c == '\"' || c == '\'' || c == ',' || c == '.' || c == '!' || c == '?'){
+        return 1;
+    }else{
+        return 0;
+    }
+}
+void rewriteWord(char *word){
+    int len = strlen(word); //Stops at the first null
+    if(word == 0){  //
+        perror("String is empty find out why, in rewriteword");
+        return; 
+    } 
+
+    //Find the new start to use with memcopy
+    int start = 0;
+
+    while (start < len && (frontCharCheck(word[start]) == 1)) {
+        start++;
+    }
+
+    //Next we need the ending valid char
+    int end = len - 1; //Gives us ending index
+    while (end >= start && (lastCharCheck(word[end]) ==1)) {
+        end--;
+    }
+
+    //Now we have to calculate the new length
+    int newLen = end - start + 1; 
+    if (newLen <= 0) { //An exmaple of this happening ((!!)) will become nothing so newline is 0
+        // The word became empty or invalid
+        word[0] = '\0';
+        return;
+    }
+
+    //Now we have to copy the substring
+    if (start > 0) {
+        memmove(word, word + start, newLen); //Copying 
+    }
+    word[newLen] = '\0'; //Now word is ready to be moved onto the hash-table
+}
+/*
+!Work in progress of scanning the files and generating the words, couting the words works fine everything seems fine
+!Now onto generating the words using these guidelines
+!- Words A word is a sequence of non-whitespace characters containing at least one letter; not
+!- !starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
+*/
+
+void scanningFiles(const char *filename){
+    int fd = open(filename, O_RDONLY); //Retuns a unique int asscoociated with out file ---> -1 if cant be opened
+    if (fd == -1) {
+        perror("Open failed on scanning files");
+        return;
+    }
+    char buffer[MAXSIZE];
+    int bytesRead;
+    int wordCounter = 0;
+    char wordArray[wordArraySize];
+    int wordIndex = 0;
+    int insideAWord = 0; // 1 represents if were inside a word and 0 if not
+
+    while ((bytesRead = read(fd, buffer, 128)) > 0) { //remeber read retuns an int of bytes it read 0 if no more a <0 if something went wrong
+        for (int i = 0; i < bytesRead; i++) { //Goes through our whole buffer
+            char c = buffer[i];
+            if (isspace(c) || c == '\0' ) { //reached end of word or reached a null terminator cause what if it appears in file
+                if(insideAWord == 1){ //Process the word
+                    wordArray[wordIndex] = '\0'; //So even if our first wordArray has hello\0 in it then we read i so the wordArray will have I\0ello\0 this will be fine as the string will end at the first \0
+                    wordIndex = 0;
+                    wordCounter++;
+                    printf("Index %d, Current Word: %s\n", wordCounter, wordArray);
+                    rewriteWord(wordArray);
+                    if(strlen(wordArray)!= 0){
+                        printf("Corrected Word, %s\n", wordArray); 
+                        //!SEND TO HASH
+                    }else{
+                        printf("I was full of invalid chars I am empty now, %s\n", wordArray); 
+                        //!FOR DEBUGGING PURPOSES 
+                    }
+
+                    insideAWord = 0; //If we are in a space we set inside a word to 0
+                }
+            } else {
+                if(wordIndex < wordArraySize-1){ //Ensure space for null terminiator
+                    wordArray[wordIndex] = c;
+                    wordIndex++; 
+                }
+                insideAWord = 1;
+            }
+        }
+    }
+
+    if (bytesRead < 0) { //If read gets negative input somethings wrong
+        perror("Something is wrong with our code, read returned something less than 0");
+    }
+
+    if (insideAWord == 1 && wordIndex > 0) { //If the file does not end with a whitespace we must process the last word
+        wordArray[wordIndex] = '\0';
+        wordCounter++;
+        printf("Index %d, Current Word: %s\n", wordCounter, wordArray);
+    }
+
+    printf("Number of words is %d", wordCounter);
+    if(bytesRead ==0 ) puts("\nNo bytes remaining!");
+
+    close(fd); //close the file
 }
 
 /*
@@ -61,13 +185,14 @@ void searchDirectory(const char *dirName){
         if(entry->d_name[0] == '.'){  //Ignoring names with (.) at index 0
             continue;
         }
-
         //We now need to construct the correct path to the file we are at --> Example foo/bar/baz
-        char path[4096] = {0};
+        char path[MAXSIZE] = {0};
         strcpy(path, dirName); //--> On first go foo
         strcat(path, "/"); //--> foo/
         strcat(path, entry->d_name); // foo/bar is now our the path to the entry we are looking at
-        //!This might lead to overflow so need to find a better way to make it better
+        //!Important for above
+        //!This might lead to overflow so need to find a better way to make it better, maybe malloc and realloc?
+        //!Look into later in can be fixed quick
 
         //Now that we have the correct path we can now get the type of the entry
         int type = stat(path, &pathStatus);
@@ -79,9 +204,10 @@ void searchDirectory(const char *dirName){
         if (S_ISREG((pathStatus.st_mode))) { //If its a regular file
             int checkIfTxt = txtFile(path);
             if(checkIfTxt == 0){
-                printf("Not a txt file just a reg one %s\n", path);
+                printf("Skipping: Not a txt file just a regular one %s\n", path);
             }else{
                 printf("This is a text file %s\n", path);
+                scanningFiles(path);
             }
         } else if ((S_ISDIR(pathStatus.st_mode))) { // If its a directory we recursively call our function again to enter again with the name of path
             printf("directory: %s\n", entry->d_name);
@@ -90,7 +216,7 @@ void searchDirectory(const char *dirName){
             printf("Skipping %s: It is not a file or a directory\n", entry->d_name);
         }
     }
-    closedir(dir); 
+    closedir(dir);  //close the directory
 }
 
 /*
@@ -123,6 +249,7 @@ int main(int argc, char *argv[]) {
                 printf("Not a txt file just a reg one %s\n", argv[i]);
             }else{
                 printf("This is a text file %s\n", argv[i]);
+                scanningFiles(argv[i]);
             }
 
         }else if (S_ISDIR(pathStatus.st_mode)) { // If its a directory we need to scan the contents inside recursivley
