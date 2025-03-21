@@ -9,10 +9,10 @@
 #include <dirent.h> //Holds open dir etc
 #include <unistd.h> //Holds open files etc
 #include <ctype.h> 
+#include "hashTable.h" //Includes our hashtabke function
 #define MAXSIZE 4096 //This is for buffer read and path file names
 #define wordArraySize 500 // We can make this bigger 
-// local
-// global
+HashTable globalHashTable = { .totalWords = 0 };  //Our globalHashTable which
 
 /*
     Will check if the file name ends witha .txt to be scanned
