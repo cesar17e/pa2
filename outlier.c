@@ -11,6 +11,8 @@
 #include <ctype.h> 
 #define MAXSIZE 4096 //This is for buffer read and path file names
 #define wordArraySize 500 // We can make this bigger 
+// local
+// global
 
 /*
     Will check if the file name ends witha .txt to be scanned
@@ -39,7 +41,7 @@ int txtFile(const char *name){
         !- Words A word is a sequence of non-whitespace characters containing at least one letter; not
         !-  Starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
         !-In rewrite word we will use memove and pointer arithmatic so we skip all the non valid chars 
-        !KEY WORD- MUST CONTAIN ONE LETTER
+        !KEY WORD- MUST CONTAIN ONE LETTER  
 */
 int lowercaseAndcheckforletter(char *word, int size){
     int hasALetter = 0; //
@@ -54,7 +56,7 @@ int lowercaseAndcheckforletter(char *word, int size){
 
 
 int frontCharCheck(char c){ //Returns 1 if true 0 if false
-    if (c == '(' || c == '[' || c == '{' || c == '\"' || c == '\''){
+    if (c == '(' || c == '[' || c == '{' || c == '\"' || c == '\''){  
         return 1;
     }else{
         return 0;
@@ -118,7 +120,7 @@ void rewriteWord(char *word){
 !- Not starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
 */
 
-void scanningFiles(const char *filename){
+void scanningFiles(const char *filename){ 
     int fd = open(filename, O_RDONLY); //Retuns a unique int asscoociated with out file ---> -1 if cant be opened
     if (fd == -1) {
         perror("Open failed on scanning files");
@@ -144,6 +146,8 @@ void scanningFiles(const char *filename){
                     if(strlen(wordArray)!= 0){
                         printf("Corrected Word, %s\n", wordArray); 
                         //!SEND TO HASH
+                        //Send to local hash
+                        //Send to global hash
                     }else{
                         printf("I was full of invalid chars I am empty now, %s\n", wordArray); 
                         //!FOR DEBUGGING PURPOSES 
@@ -182,6 +186,10 @@ void scanningFiles(const char *filename){
     if(bytesRead ==0 ) printf("\nNo bytes remaining--> %s is finsihed reading!\n", filename);
 
     close(fd); //close the file
+
+    //SCAN THE LOCAL HASH
+    //F
+    //rest local
 }
 
 
@@ -272,7 +280,6 @@ int main(int argc, char *argv[]) {
             perror(argv[i]);
             continue;
         }
-        
         //So now the struct is assigned to the file/dir and using .st_mode it will give us the type if its a file or a directory
         if (S_ISREG((pathStatus.st_mode))) { // If its a regular file
             int checkIfTxt = txtFile(argv[i]);
@@ -289,5 +296,9 @@ int main(int argc, char *argv[]) {
             printf("Skipping %s: It is not a file or a directory\n", argv[i]);
         }
     }
+
+
+    //!CALL TO GLOBAL 
+    //free both at the end
 
 }
