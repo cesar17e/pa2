@@ -13,7 +13,7 @@
 #include "localHashLL.h" //Includes the linked list that stores our local hashtables
 
 
-#define MAXSIZE 4096 //This is for buffer read and path file names
+#define MAXSIZE 8192 //This is for buffer read and path file names
 #define wordArraySize 500 // We can make this bigger 
 
 
@@ -248,6 +248,14 @@ void searchDirectory(const char *dirName){
         }
         //We now need to construct the correct path to the file we are at --> Example 
         char path[MAXSIZE] = {0};
+
+        int directoryLength = strlen(dirName);
+        int entryNameLength = strlen(entry -> d_name);
+        //!this doesn't necessarily fix the issue, but it just adds checks to ensure that program returns if length is too long
+        if(dirName + 1 + entryNameLength >= MAXSIZE){
+            printf("Error!!! Path too long: %s/%s\n", dirName, entry ->d_name);
+            return;
+        }
         strcpy(path, dirName); //--> On first go foo
         strcat(path, "/"); //--> foo/
         strcat(path, entry->d_name); // foo/bar is now our the path to the entry we are looking at 
@@ -283,6 +291,90 @@ void searchDirectory(const char *dirName){
 
 void printFrequencies(HashTable *ht);
 
+
+
+void printFrequencies(HashTable *ht) {
+    if (!ht || ht->totalWords == 0) {
+        printf("No words to compute frequency.\n");
+        return;
+    }
+    
+    printf("Word Frequencies:\n");
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        wordFreq *entry = ht->buckets[i];
+        while (entry != NULL) {
+            double freq = (double) entry->count / ht->totalWords;
+            printf("Word: %-15s Count: %-5d Frequency: %.4f\n",
+                   entry->word, entry->count, freq);
+            entry = entry->next;
+        }
+    }
+}
+
+
+double getGlobalFrequency(HashTable *ht, char *word){
+    if(!ht || ht ->totalWords ==0){
+        printf("Error! No words in Hashtable \n");
+        return 0.0;
+    }
+    unsigned int index = hash(word);
+    wordFreq *entry = ht -> buckets[index];
+    while(entry != NULL){
+        if(strcmp(entry ->word, word) == 0){
+           // printf("getGlobalFrequency Method Found ! \n ");
+            return (double) entry-> count / ht -> totalWords;
+        }
+        entry = entry->next;
+    }
+    printf("getGlobalFrequency Method did Not Find Word !");
+}
+
+void findMostUnusualWord(FileHash *fileNode, HashTable *globalHT){
+    if(!fileNode || !fileNode -> ht || !globalHT){
+        printf("Error! One of the arguments were null or not initalized properly");
+        return;
+    }
+    HashTable *localHT = fileNode -> ht;
+    char *weirdWord = NULL;
+    double maxRatio = 0.0;
+
+    for(int i = 0; i < TABLE_SIZE; i++){
+        wordFreq *entry = localHT->buckets[i];
+        while(entry != NULL){
+            double localFreq = (double) entry -> count / localHT-> totalWords;
+            double globalFreq = getGlobalFrequency(globalHT, entry->word);
+            double ratio = localFreq / globalFreq;
+
+
+            if(ratio > maxRatio){
+                maxRatio = ratio;
+                weirdWord = entry->word;
+            }
+            //!IF THE TWO WORDS HAVE THE SAME FREQ, NEED TO COMPARE LEXIOGRAPHICALLY
+            else if(ratio == maxRatio){
+                if(strcmp(entry -> word, weirdWord) < 0){
+                    weirdWord = entry ->word;
+                }
+            }
+
+            entry = entry->next;
+        }
+    }
+
+    if(weirdWord){
+        printf("File: %s, Most Unusual Word: %s, Ratio: %.4f\n", fileNode -> filename, weirdWord, maxRatio);
+    } else {
+        printf("File: %s, NO Unusual Words found.\n", fileNode -> filename);
+    }
+}
+
+void printWeirdWords(FileHash *fileListHEad, HashTable *globalHT){
+    FileHash *current = fileListHead;
+    while(current != NULL){
+        findMostUnusualWord(current, globalHT);
+        current = current->next;
+    }
+}
 
 /*
 Our program will take in aruguements, we will use stat to determine whether they are of dir or regular files
@@ -329,6 +421,8 @@ int main(int argc, char *argv[]) {
     //!NOW ALL IS PROCESSED PROCEED
     printFrequencies(globalHT);
 
+    printWeirdWords(fileListHead, globalHT);
+
     //!CALL TO GLOBAL 
     //free both at the end
     freeHashTable(globalHT); // Free the global hash table.
@@ -336,22 +430,3 @@ int main(int argc, char *argv[]) {
 
 }
 
-
-
-void printFrequencies(HashTable *ht) {
-    if (!ht || ht->totalWords == 0) {
-        printf("No words to compute frequency.\n");
-        return;
-    }
-    
-    printf("Word Frequencies:\n");
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        wordFreq *entry = ht->buckets[i];
-        while (entry != NULL) {
-            double freq = (double) entry->count / ht->totalWords;
-            printf("Word: %-15s Count: %-5d Frequency: %.4f\n",
-                   entry->word, entry->count, freq);
-            entry = entry->next;
-        }
-    }
-}
