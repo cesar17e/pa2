@@ -9,10 +9,20 @@
 #include <dirent.h> //Holds open dir etc
 #include <unistd.h> //Holds open files etc
 #include <ctype.h> 
-#include "hashTable.h" //Includes our hashtabke function
+#include "hashTable.h" //Includes our hashtable function
+#include "localHashLL.h" //Includes the linked list that stores our local hashtables
+
+
 #define MAXSIZE 4096 //This is for buffer read and path file names
 #define wordArraySize 500 // We can make this bigger 
-HashTable globalHashTable = { .totalWords = 0 };  //Our globalHashTable which
+
+
+//The global hash table for overall frequency.
+HashTable *globalHT = NULL;
+//Linked list head pointer to store local hash tables for each file.
+FileHash *fileListHead = NULL;
+int FILECOUNTER = 0;
+    
 
 /*
     Will check if the file name ends witha .txt to be scanned
@@ -126,6 +136,14 @@ void scanningFiles(const char *filename){
         perror("Open failed on scanning files");
         return;
     }  
+    FILECOUNTER++; //Increments the files we encounter will need for later usaged for frequencies
+    FileHash *fileNode = createFileHash(filename); //Now this contains the file name and local hashtable and a next pointer
+    // Now fileNode->ht is the local hash table.
+
+    // Now we insert fileNode into the global list.
+    insertFileHash(&fileListHead, fileNode);
+
+    
     char buffer[MAXSIZE+1];
     int bytesRead;
     int wordCounter = 0;
@@ -145,9 +163,13 @@ void scanningFiles(const char *filename){
                     rewriteWord(wordArray);
                     if(strlen(wordArray)!= 0){
                         printf("Corrected Word, %s\n", wordArray); 
-                        //!SEND TO HASH
-                        //Send to local hash
+                        //!SEND TO HASH,void insertWord(HashTable *ht, const char *word)
+
+                        //Send to local Hash
+                        insertWord(fileNode->ht, wordArray);
                         //Send to global hash
+                        insertWord(globalHT, wordArray); 
+
                     }else{
                         printf("I was full of invalid chars I am empty now, %s\n", wordArray); 
                         //!FOR DEBUGGING PURPOSES 
@@ -175,7 +197,11 @@ void scanningFiles(const char *filename){
         rewriteWord(wordArray);
         if(strlen(wordArray)!= 0){
             printf("Corrected Word, %s\n", wordArray); 
-            //!SEND TO HASH
+            //!SEND TO HASH,void insertWord(HashTable *ht, const char *word)
+            //Send to local Hash
+            insertWord(fileNode->ht, wordArray);
+            //Send to global hash
+            insertWord(globalHT, wordArray); 
         }else{
             printf("I was full of invalid chars I am empty now, %s\n", wordArray); 
             //!FOR DEBUGGING PURPOSES 
@@ -186,10 +212,6 @@ void scanningFiles(const char *filename){
     if(bytesRead ==0 ) printf("\nNo bytes remaining--> %s is finsihed reading!\n", filename);
 
     close(fd); //close the file
-
-    //SCAN THE LOCAL HASH
-    //F
-    //rest local
 }
 
 
@@ -259,6 +281,8 @@ void searchDirectory(const char *dirName){
 }
 
 
+void printFrequencies(HashTable *ht);
+
 
 /*
 Our program will take in aruguements, we will use stat to determine whether they are of dir or regular files
@@ -271,6 +295,10 @@ int main(int argc, char *argv[]) {
         printf("Not Enough Arguements");
         return 1;
     }
+
+    //Create the global hashtable
+    createHashTable(&globalHT); // Now globalHT points to a initialized hash table.
+    
     //Process the inputs
     for(int i =0; i<argc; i++){
         struct stat pathStatus; //This will tell us the type of file we are reading
@@ -298,7 +326,32 @@ int main(int argc, char *argv[]) {
     }
 
 
+    //!NOW ALL IS PROCESSED PROCEED
+    printFrequencies(globalHT);
+
     //!CALL TO GLOBAL 
     //free both at the end
+    freeHashTable(globalHT); // Free the global hash table.
+    freeFileHashList(fileListHead); // Free the linked list of local hash tables, it includes freeHashTable within the funcion freeing the many local hashTables
 
+}
+
+
+
+void printFrequencies(HashTable *ht) {
+    if (!ht || ht->totalWords == 0) {
+        printf("No words to compute frequency.\n");
+        return;
+    }
+    
+    printf("Word Frequencies:\n");
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        wordFreq *entry = ht->buckets[i];
+        while (entry != NULL) {
+            double freq = (double) entry->count / ht->totalWords;
+            printf("Word: %-15s Count: %-5d Frequency: %.4f\n",
+                   entry->word, entry->count, freq);
+            entry = entry->next;
+        }
+    }
 }
