@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdlib.h> 
+#include <string.h>  
 //Down below are the stuff we need
 #include <sys/stat.h> 
 //Tells us the type of each argument
@@ -11,6 +11,7 @@
 #include <ctype.h> 
 #include "hashTable.h" //Includes our hashtable function
 #include "localHashLL.h" //Includes the linked list that stores our local hashtables
+#include "wordProcessing.h" //Includes the word processing of functions
 
 
 #define MAXSIZE 8192 //This is for buffer read and path file names
@@ -43,84 +44,6 @@ int txtFile(const char *name){
     }else{
         return 0;
     }
-}
-
-
-/*
-    Here we will check our new string and organize to lower case and rid of characters that arent allowed as defined by project
-        !- Words A word is a sequence of non-whitespace characters containing at least one letter; not
-        !-  Starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
-        !-In rewrite word we will use memove and pointer arithmatic so we skip all the non valid chars 
-        !KEY WORD- MUST CONTAIN ONE LETTER  
-*/
-int lowercaseAndcheckforletter(char *word, int size){
-    int hasALetter = 0; //
-    for(int i =0; i < size; i++){
-        word[i] = tolower(word[i]);
-        if (isalpha(word[i])) {
-            hasALetter = 1;
-        }
-    }
-    return hasALetter; //If it returns 1 it has a letter, 0 if not
-}
-
-
-int frontCharCheck(char c){ //Returns 1 if true 0 if false
-    if (c == '(' || c == '[' || c == '{' || c == '\"' || c == '\''){  
-        return 1;
-    }else{
-        return 0;
-    }
-}
-int lastCharCheck(char c){ //Returns 1 if true 0 if false
-    if (c == ')' || c == ']' || c == '}' || c == '\"' || c == '\'' || c == ',' || c == '.' || c == '!' || c == '?'){
-        return 1;
-    }else{
-        return 0;
-    }
-}
-
-void rewriteWord(char *word){
-    if(word == NULL){  //
-        perror("String is empty find out why, in rewriteword");
-        return; 
-    } 
-
-    int len = strlen(word); //Stops at the first null
-    //Find the new start to use with memcopy
-    int start = 0;
-
-    while (start < len && (frontCharCheck(word[start]) == 1)) {
-        start++;
-    }
-
-    //Next we need the ending valid char
-    int end = len - 1; //Gives us ending index
-    while (end >= start && (lastCharCheck(word[end]) ==1)) {
-        end--;
-    }
-
-    //Now we have to calculate the new length
-    int newLen = end - start + 1; 
-    if (newLen <= 0) { //An exmaple of this happening ((!!)) will become nothing so newline is 0
-        // The word became empty or invalid
-        word[0] = '\0';
-        return;
-    }
-
-    //Now we have to copy the substring
-    if (start > 0) {
-        memmove(word, word + start, newLen); //Copying 
-    }
-    word[newLen] = '\0'; //Now word is ready to be moved onto the hash-table
-
-    //Before leaving lets make it all lowercase so that HELLO == hello and check if it contains at least one letter!
-    int checkForLetter = lowercaseAndcheckforletter(word, newLen); 
-    if(checkForLetter == 0){
-        word[0] = '\0';
-        return;
-    }
-    return;
 }
 
 /*
@@ -252,7 +175,7 @@ void searchDirectory(const char *dirName){
         int directoryLength = strlen(dirName);
         int entryNameLength = strlen(entry -> d_name);
         //!this doesn't necessarily fix the issue, but it just adds checks to ensure that program returns if length is too long
-        if(dirName + 1 + entryNameLength >= MAXSIZE){
+        if(directoryLength + 1 + entryNameLength >= MAXSIZE){
             printf("Error!!! Path too long: %s/%s\n", dirName, entry ->d_name);
             return;
         }
@@ -287,10 +210,6 @@ void searchDirectory(const char *dirName){
     }
     closedir(dir);  //close the directory
 }
-
-
-void printFrequencies(HashTable *ht);
-
 
 
 void printFrequencies(HashTable *ht) {
@@ -368,7 +287,7 @@ void findMostUnusualWord(FileHash *fileNode, HashTable *globalHT){
     }
 }
 
-void printWeirdWords(FileHash *fileListHEad, HashTable *globalHT){
+void printWeirdWords(FileHash *fileListHead, HashTable *globalHT){
     FileHash *current = fileListHead;
     while(current != NULL){
         findMostUnusualWord(current, globalHT);
