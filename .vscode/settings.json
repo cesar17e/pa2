@@ -8,7 +8,9 @@
     "unordered_set": "c",
     "vector": "c",
     "string_view": "c",
-    "initializer_list": "c"
+    "initializer_list": "c",
+    "localhashll.h": "c",
+    "hashtable.h": "c"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

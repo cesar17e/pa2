@@ -1,65 +1,101 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <ctype.h>
+
+#define MAXSIZE 8192// Buffer size
+
 /*
     Purpose:
-    The purpose of this file and subDir is to find out if our Scanning text files function works properly
-    Expectation: I e
-
- */
-
-
-
+        This function opens a file given by its filename, reads its contents in chunks,
+        and extracts words from the file. A word is defined as a sequence of non-whitespace
+        characters. When a word is complete the function prints out the word along with its order of occurence
+    Test:
+        We will create a text file containing multiple words with spacing, newlines, and punctuation. 
+        For example, a file with:
+            "Hello World\nThis is   a test."
+        Expect the function to print each extracted word in order.
+    Expectation:
+        - It should correctly detect word boundaries using isspace()
+        - It should print each word along with its index.
+        - If the file ends without whitespace, the last word should still be processed.
+        - It should finally print the total number of words processed.
+*/
 
 void scanningFiles(const char *filename){ 
-    int fd = open(filename, O_RDONLY); //Retuns a unique int asscoociated with out file ---> -1 if cant be opened
+    // Open the file in read-only mode.
+    int fd = open(filename, O_RDONLY); // Returns a unique file descriptor, or -1 on error.
     if (fd == -1) {
         perror("Open failed on scanning files");
         return;
     }  
-    FILECOUNTER++; //Increments the files we encounter will need for later usaged for frequencies
-    FileHash *fileNode = createFileHash(filename); //Now this contains the file name and local hashtable and a next pointer
-    // Now fileNode->ht is the local hash table.
-
-    // Now we insert fileNode into the global list.
-    insertFileHash(&fileListHead, fileNode);
-
+    printf("Opened %s", filename);
     
-    char buffer[MAXSIZE+1];
+    char buffer[MAXSIZE+1];  // Buffer to hold data read from file.
     int bytesRead;
-    int wordCounter = 0;
-    char wordArray[wordArraySize];
-    int wordIndex = 0;
-    int insideAWord = 0; // 1 represents if were inside a word and 0 if not
+    int wordCounter = 0;     // Counts the number of words processed.
+    char wordArray[wordArraySize]; // Buffer to build each word.
+    int wordIndex = 0;       // Index within wordArray.
+    int insideAWord = 0;     // Flag: 1 if we are currently reading a word, 0 otherwise.
 
-    while ((bytesRead = read(fd, buffer, MAXSIZE)) > 0) { //remeber read retuns an int of bytes it read 0 if no more a <0 if something went wrong
-        for (int i = 0; i < bytesRead; i++) { //Goes through our whole buffer
+    // Read the file in chunks of size MAXSIZE.
+    while ((bytesRead = read(fd, buffer, MAXSIZE)) > 0) {
+        // Process each character in the current buffer.
+        for (int i = 0; i < bytesRead; i++) {
             char c = buffer[i];
-            if (isspace(c) || c == '\0' ) { //reached end of word or reached a null terminator cause what if it appears in file
-                if(insideAWord == 1){ //Process the word
-                    wordArray[wordIndex] = '\0'; //So even if our first wordArray has hello\0 in it then we read i so the wordArray will have I\0ello\0 this will be fine as the string will end at the first \0
-                    wordIndex = 0;
-                    wordCounter++;
+            // Check if the character is whitespace or a null terminator.
+            if (isspace(c) || c == '\0' ) {
+                // If we were in the middle of reading a word, then we have reached the end of the word.
+                if (insideAWord == 1) {
+                    wordArray[wordIndex] = '\0'; // Terminate the word.
+                    wordIndex = 0;              // Reset the word buffer index.
+                    wordCounter++;              // Increment the word counter.
+                    // Print the word with its index.
                     printf("Index %d, Current Word: %s\n", wordCounter, wordArray);
-                    rewriteWord(wordArray);
-                    if(strlen(wordArray)!= 0){
-                        printf("Corrected Word, %s\n", wordArray); 
-                        //!SEND TO HASH,void insertWord(HashTable *ht, const char *word)
-
-                        //Send to local Hash
-                        insertWord(fileNode->ht, wordArray);
-                        //Send to global hash
-                        insertWord(globalHT, wordArray); 
-
-                    }else{
-                        printf("I was full of invalid chars I am empty now, %s\n", wordArray); 
-                        //!FOR DEBUGGING PURPOSES 
-                    }
-                    insideAWord = 0; //If we are in a space we set inside a word to 0
+                    insideAWord = 0;            // Reset flag: we are no longer inside a word.
                 }
             } else {
-                if(wordIndex < wordArraySize-1){ //Ensure space for null terminiator  
+                // The character is not whitespace: add it to the word buffer if there's space.
+                if (wordIndex < wordArraySize - 1) { // Leave space for null terminator.
                     wordArray[wordIndex] = c;
                     wordIndex++; 
                 }
-                insideAWord = 1;
+                insideAWord = 1; // Mark that we are inside a word.
             }
         }
     }
+
+    // If read() returned a negative number, an error occurred.
+    if (bytesRead < 0) {
+        perror("Something is wrong with our code, read returned something less than 0");
+    }
+
+    // If the file ended without a trailing whitespace, process the last word.
+    if (insideAWord == 1 && wordIndex > 0) {
+        wordArray[wordIndex] = '\0'; // Terminate the last word.
+        wordCounter++;
+        printf("Index %d, Current Word: %s\n", wordCounter, wordArray);
+    }
+
+    // Print the total number of words processed.
+    printf("Number of words is %d\n", wordCounter);
+    if (bytesRead == 0)
+        printf("No bytes remaining --> %s is finished reading!\n", filename);
+
+    close(fd); // Close the file.
+}
+
+
+
+int main(){
+    //I will pass in various text files within this directory as args
+    
+
+
+
+
+}

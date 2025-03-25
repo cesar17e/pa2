@@ -47,8 +47,8 @@ int txtFile(const char *name){
 }
 
 /*
-!Work in progress of scanning the files and generating the words, couting the words works fine everything seems fine
-!Now onto generating the words using these guidelines
+!- Work in progress of scanning the files and generating the words, couting the words works fine everything seems fine
+!- Now onto generating the words using these guidelines
 !- Words A word is a sequence of non-whitespace characters containing at least one letter; --> so ((!!)) would not be sent as its just the \0 not letter \0 is a whitespace
 !- Not starting with (, [, {, ", or ’; and not ending with ), ], }, ", ’, ,, ., !, or ?.
 */
