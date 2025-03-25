@@ -8,6 +8,8 @@
 #include <ctype.h>
 
 #define MAXSIZE 8192// Buffer size
+#define wordArraySize 500 // We can make this bigger 
+
 
 /*
     Purpose:
@@ -90,12 +92,15 @@ void scanningFiles(const char *filename){
 }
 
 
+int main(void) {
+    // --- Test 1: Basic words and newlines --- simple words with spaces and newlines.
+    scanningFiles("./testOne.txt");
 
-int main(){
-    //I will pass in various text files within this directory as args
-    
+    // --- Test 2: Extra punctuation, spaces, and invalid words ---
+    scanningFiles("./testTwo.txt");
 
+    // --- Test 3: Multiple lines and a long word ---
+    scanningFiles("./testTwo.txt");
 
-
-
+    return 0;
 }

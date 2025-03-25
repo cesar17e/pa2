@@ -20,7 +20,7 @@
 
     As stated before, the program scans all arguments using the scanningFiles method, which behaves differently based on the given file type. If the input is a directory, the searchDirectory method is recursively called to locate text files. If the input is a text file, the scanFile method is called to scan that text file. If the input is neither of these files, it will skip the file and note that it was neither a text file or directory.
 
-    When scanning files for words, special checks are made to ensure that it is a valid word. For our implementation, words are defined as sequences of non-whitespace characters that contain at least one letter. Additionally, words must not start with (, [, {, ", or ', and must not end with ), ], }, ", ', ,, ., !, or ?.
+    When scanning files for words, special checks are made to ensure that it is a valid word. For our implementation, words are defined as sequences of non-whitespace characters that contain at least one letter (so a word with ONLY numbers are not allowed). Additionally, words must not start with (, [, {, ", or ', and must not end with ), ], }, ", ', ,, ., !, or ?. Also, words are case INSENSITIVE for this project so any uppercase is converted to lowercase (so Hello becomes hello). 
     
     If a valid word is read it is added to a node in a hashtable with the process outlined above. 
 
@@ -34,9 +34,58 @@
 
     This test case tests the edge case where if two words have the same unusual frequency in a file, the output is the word that comes lexographically first. In this test, text3.txt has the same unusual frequency of apple and banana, so apple is expected. This case works as expected.
 
-    correctnessTesting --> reWriteWordFunction
+
+    overloadTesting --> 10000words
+
+    As the name implies, this test checks for program durability by having the program scan a folder with two text files, each with 10000 words. This case works as expected.
+
+    overloadTesting --> buffertest
+    
+    This test is designed to test if our program correctly reads words, even if they are super long. This directory has only one file which has a 501 character word and multiple 500 character words. As expected, the program is able to differentiate these as two different words and works as expected.
+
+    correctnessTestingOfFunctions --> rewriteWordFunction
+
+    This test is designed to assess the accuracy of the rewriteWord function, which is designed to censor out words beginning with (, [, {, ", or ' or ending with ), ], }, ", ', ,, ., !, or ?. It also ensures that upper/lower case does not matter by converting things to lowercase, and ensures that words must have at least one letter. This test works as expected.
+
+    correctnessTestingOfFunctions --> hashFunction
+
+    This test checks to see if the hash function is working as intended. This test hashes the word cat, which has an expected hash of 262, because of the following calculation:
+    Initial hash = 0
+    hash = (0 * 31) + 99 = 99
+    hash = (99 * 31) + 97 = 3166
+    hash = (3166 * 31) + 116 = 98262
+    Final index = 98262 % 1000 = 262
+
+    This test works as expected.
+
+
+    correctnessTestingOfFunctions --> scanningFunction
+
+/*
+    Purpose:
+        This function opens a file given by its filename, reads its contents in chunks,
+        and extracts words from the file. A word is defined as a sequence of non-whitespace
+        characters. When a word is complete the function prints out the word along with its order of occurence
+    Test:
+        We will create a text file containing multiple words with spacing, newlines, and punctuation. 
+        For example, a file with:
+            "Hello World\nThis is   a test."
+        Expect the function to print each extracted word in order.
+    Expectation:
+        - It should correctly detect word boundaries using isspace()
+        - It should print each word along with its index.
+        - If the file ends without whitespace, the last word should still be processed.
+        - It should finally print the total number of words processed.
+*/
+
+
+
+
+
+
+
+
+
+
 
     
-
-
-
